@@ -17,7 +17,56 @@
   See the comments in the header file for an idea of what it should look like.
 */
 void sr_arpcache_sweepreqs(struct sr_instance *sr) { 
-    /* Fill this in */
+    struct sr_arpcache* cache = &(sr->cache);
+    struct sr_arpreq* head = cache->requests;
+
+    while (head != NULL) {
+        struct sr_arpreq* next = head->next;
+        handle_arpreq(sr, head);
+        head = next;
+    }
+}
+
+
+void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
+    time_t now = time(NULL);
+    if (difftime(now, req->sent) > 1.0) {
+        if (req->times_sent >= 5) {
+            struct sr_packet* head = req->packets;
+            while (head != NULL) {
+                send_icmp_type3_packet(sr, head->buf, head->len, head->iface, (uint8_t)3, (uint8_t)1);
+            }
+            head = head->next;
+        }
+        sr_arpreq_destroy(&(sr->cache), req);
+    } else {
+        // Send ARP request
+        int len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t);
+        uint8_t packet = malloc(len * sizeof(uint8_t));
+
+        sr_ethernet_hdr_t* ethernet_header = (sr_ethernet_hdr_t*) packet;
+        sr_arp_hdr_t* arp_header = (sr_arp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
+
+        struct sr_if* outcoming_interface = sr_get_interface(sr, req->packets->iface);
+        
+        // Build ARP header
+        arp_header->ar_hrd = (unsigned short)htons(arp_hrd_ethernet);
+        arp_header->ar_pro = (unsigned short)htons(0x800);
+        arp_header->ar_hln = (unsigned char)ETHER_ADDR_LEN;
+        arp_header->ar_pln = (unsigned char)4;
+        arp_header->ar_op = (unsigned short)htons(arp_op_request);
+        arp_header->ar_tip = req->ip;
+        arp_header->ar_sip = outcoming_interface->ip;
+
+        unsigned char broadcast[ETHER_ADDR_LEN] = {255, 255, 255, 255, 255, 255};
+        memcpy(arp_header->ar_tha, broadcast, sizeof(unsigned char) * ETHER_ADDR_LEN);
+        memcpy(arp_header->ar_sha, outcoming_interface->addr, sizeof(unsigned char) * ETHER_ADDR_LEN);
+        
+        // Build ARP header
+        ethernet_header->ether_type = htons(ethertype_arp);
+        forward_packet_with_mac(sr, packet, len, outcoming_interface, broadcast);
+        free(packet);
+    }
 }
 
 /* You should not need to touch the rest of this code. */
