@@ -183,7 +183,7 @@ void send_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, 
   struct sr_rt* node = longest_prefix_matching(sr, ip);
   if (node == NULL) {
     printf("[INFO] Destination IP address not found.\n");
-    send_icmp_type3_packet(sr, packet, len, interface, (uint8_t)3, (uint8_t)0);
+    // send_icmp_type3_packet(sr, packet, len, interface, (uint8_t)3, (uint8_t)0);
   }
   // Find outcoming interface
   struct sr_if* outcoming_interface = sr_get_interface(sr, node->interface);
