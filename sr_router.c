@@ -67,8 +67,6 @@ void sr_handlepacket(struct sr_instance* sr,
 
   printf("*** -> Received packet of length %d \n",len);
 
-  /* fill in code here */
-
   /* Get Ethernet Header */
   sr_ethernet_hdr_t* ethernet_header = (sr_ethernet_hdr_t*) packet;
 
@@ -84,16 +82,12 @@ void sr_handlepacket(struct sr_instance* sr,
 
 
 /* Handle ARP Packet */
-void handle_arp_packet(struct sr_instance* sr,
-        uint8_t * packet/* lent */,
-        unsigned int len,
-        char* interface/* lent */)
-{
+void handle_arp_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, char* interface) {
   /* Incoming ethernet header & ARP header */
   sr_ethernet_hdr_t* ethernet_header = (sr_ethernet_hdr_t*) packet;
   sr_arp_hdr_t* arp_header = (sr_arp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
 
-  /*    ***********  REQUEST  ************ */
+  /*    ***********  REQUEST  ************   */
   if (ntohs(arp_header->ar_op) == arp_op_request) {
     /* Request to me */
     printf("[INFO] Received ARP Request.\n");
@@ -101,12 +95,11 @@ void handle_arp_packet(struct sr_instance* sr,
     /* Pre-checking */ 
     struct sr_if* outcome_interface = contains_interface_for_ip(sr, arp_header->ar_tip);
     if (outcome_interface == NULL) {
-      printf("[WARNING] Target IP does not exist in this router!");
+      printf("[INFO] Target IP does not exist in this router! ARP request is not for me.\n");
       return;
     }
 
     uint8_t* arp_reply = (uint8_t*)malloc(sizeof(uint8_t) * len);
-
     /* ============= Build ethernet header ============= */ 
     sr_ethernet_hdr_t* arp_reply_eh = (sr_ethernet_hdr_t*) arp_reply;
     /* Original incoming source ethernet address becomes current destination */ 
@@ -168,45 +161,21 @@ void handle_arp_packet(struct sr_instance* sr,
   }
 }
 
+
 /* Update Ethernet header with destination MAC address and send packet. */ 
 void forward_packet_with_mac(struct sr_instance* sr, uint8_t * packet, unsigned int len, struct sr_if* outcoming_interface, unsigned char* mac_address) {
   sr_ethernet_hdr_t* ethernet_header = (sr_ethernet_hdr_t*)packet;
   
   memcpy(ethernet_header->ether_dhost, mac_address, ETHER_ADDR_LEN * sizeof(uint8_t));
   memcpy(ethernet_header->ether_shost, outcoming_interface->addr, ETHER_ADDR_LEN * sizeof(uint8_t));
+  ethernet_header->ether_type = htons(ethertype_ip);
 
   sr_send_packet(sr, packet, len, outcoming_interface->name);
 }
 
-/* Send IP packet when knowing the destination IP address. */ 
-void send_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, uint32_t ip) {
-  /* Check routing table and perform LPM */
-  struct sr_rt* node = longest_prefix_matching(sr, ip);
-  if (node == NULL) {
-    printf("[INFO] Destination IP address not found.\n");
-    /* send_icmp_type3_packet(sr, packet, len, interface, (uint8_t)3, (uint8_t)0); */ 
-  }
-  /* Find outcoming interface */ 
-  struct sr_if* outcoming_interface = sr_get_interface(sr, node->interface);
-
-  /* Find gateway / next-hop 's corresponding MAC address. */ 
-  struct sr_arpentry* cached_entry = sr_arpcache_lookup(&(sr->cache), node->gw.s_addr);
-  if (cached_entry != NULL) {
-    forward_packet_with_mac(sr, packet, len, outcoming_interface, cached_entry->mac);
-    free(cached_entry);
-  } else {
-    struct sr_arpreq* req = sr_arpcache_queuereq(&(sr->cache), ip, packet, len, outcoming_interface->name);
-    handle_arpreq(sr, req);
-  }
-}
-
 
 /* Handle IP Packet */ 
-void handle_ip_packet(struct sr_instance* sr,
-        uint8_t * packet/* lent */,
-        unsigned int len,
-        char* interface/* lent */)
-{
+void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, char* interface) {
   /* Incoming ethernet header & IP header */ 
   /* sr_ethernet_hdr_t* ethernet_header = (sr_ethernet_hdr_t*) packet; */
   sr_ip_hdr_t* ip_header = (sr_ip_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
@@ -220,10 +189,11 @@ void handle_ip_packet(struct sr_instance* sr,
   if (contains_interface_for_ip(sr, ip_header->ip_dst) != NULL) {
     printf("[INFO] Router is the destination for this IP packet.\n");
     /* Judge ip_protocol */ 
-    switch (ip_header->ip_p)
+
+    switch (ntohs(ip_header->ip_p))
     {
     case ip_protocol_icmp: {
-      printf("[INFO] IP protocol is ICMP.\n");
+      printf("[INFO] IP protocol is ICMP Echo.\n");
 
       sr_icmp_hdr_t* icmp_header = (sr_icmp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
 
@@ -233,7 +203,7 @@ void handle_ip_packet(struct sr_instance* sr,
         return;
       }
       
-      /* *** ONLY HANDLE THIS SITUATION *** */ 
+      /****   ONLY HANDLE THIS SITUATION   ****/ 
       if (icmp_header->icmp_type == (uint8_t)8) {
         printf("[INFO] ICMP Echo Request.\n");
         send_icmp_echo_packet(sr, packet, len, interface, (uint8_t)0, (uint8_t)0);
@@ -267,6 +237,28 @@ void handle_ip_packet(struct sr_instance* sr,
     ip_header->ip_sum = cksum(ip_header, sizeof(sr_ip_hdr_t));
 
     send_ip_packet(sr, packet, len, ip_header->ip_dst);
+  }
+}
+
+/* Send IP packet when knowing the destination IP address. */ 
+void send_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, uint32_t ip) {
+  /* Check routing table and perform LPM */
+  struct sr_rt* node = longest_prefix_matching(sr, ip);
+  if (node == NULL) {
+    printf("[INFO] Destination IP address not found.\n");
+    /* send_icmp_type3_packet(sr, packet, len, interface, (uint8_t)3, (uint8_t)0); */ 
+  }
+  /* Find outcoming interface */ 
+  struct sr_if* outcoming_interface = sr_get_interface(sr, node->interface);
+
+  /* Find gateway / next-hop 's corresponding MAC address. */ 
+  struct sr_arpentry* cached_entry = sr_arpcache_lookup(&(sr->cache), node->gw.s_addr);
+  if (cached_entry != NULL) {
+    forward_packet_with_mac(sr, packet, len, outcoming_interface, cached_entry->mac);
+    free(cached_entry);
+  } else {
+    struct sr_arpreq* req = sr_arpcache_queuereq(&(sr->cache), ip, packet, len, outcoming_interface->name);
+    handle_arpreq(sr, req);
   }
 }
 
