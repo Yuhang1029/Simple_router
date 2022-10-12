@@ -5,6 +5,8 @@
 #include <sys/time.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "sr_protocol.h"
 #include "sr_arpcache.h"
@@ -66,16 +68,17 @@ void sr_print_if_list(struct sr_instance* );
 /* -- sr_router.c -- */
 void sr_init(struct sr_instance* );
 void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char* );
-struct sr_if* contains_interface_for_ip(struct sr_instance* , uint32_t );
 void forward_packet_with_mac(struct sr_instance* sr, uint8_t * packet, unsigned int len, struct sr_if* outcoming_interface, unsigned char* mac_address);
+void send_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, uint32_t ip);
+void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, char* interface);
+void handle_arp_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, char* interface);
 
-
-bool is_ip_checksum_valid(sr_ip_hdr_t* );
-bool is_ip_length_valid(unsigned int );
-void send_icmp_echo_packet(struct sr_instance* , uint8_t* , unsigned int len, char* , uint8_t , uint8_t );
-void send_icmp_type3_packet(struct sr_instance* , uint8_t* , unsigned int , char* , uint8_t , uint8_t );
-struct sr_rt* longest_prefix_matching(struct sr_instance* , uint32_t );
-bool is_icmp_checksum_valid(sr_icmp_hdr_t* );
-void send_ip_packet(struct sr_instance* , uint8_t * , unsigned int , uint32_t );
+struct sr_if* contains_interface_for_ip(struct sr_instance* sr, uint32_t ip);
+void send_icmp_echo_packet(struct sr_instance* sr, uint8_t* packet, unsigned int len, char* interface, uint8_t type, uint8_t code);
+void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned int len, char* interface, uint8_t type, uint8_t code);
+struct sr_rt* longest_prefix_matching(struct sr_instance* sr, uint32_t target_ip);
+bool is_icmp_checksum_valid(sr_icmp_hdr_t* icmp_header);
+bool is_ip_checksum_valid(sr_ip_hdr_t* ip_header);
+bool is_ip_length_valid(unsigned int len);
 
 #endif /* SR_ROUTER_H */
