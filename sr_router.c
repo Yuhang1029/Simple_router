@@ -136,8 +136,13 @@ void handle_arp_packet(struct sr_instance* sr, uint8_t * packet, unsigned int le
     arp_reply_ah->ar_tip = arp_header->ar_sip;
     arp_reply_ah->ar_sip = outcome_interface->ip;
 
+    printf("[INFO] Print ARP request response info.\n");
+    print_hdr_eth(arp_reply_eh);
+    print_addr_ip_int(arp_reply_ah->ar_sip);
+
     /* ============= Send Packet ============= */ 
     sr_send_packet(sr, arp_reply, len, interface);
+    printf("[INFO] Send back ARP response info.\n");
     free(arp_reply);
   } else if (ntohs(arp_header->ar_op) == arp_op_reply) { /* ==========  REPLY  ========== */ 
     /* Cache it and go through request queue and send outstanding packets */
