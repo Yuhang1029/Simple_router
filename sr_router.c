@@ -283,9 +283,11 @@ void find_MAC_address_and_send(struct sr_instance* sr, uint8_t * packet, unsigne
   /* Find target_ip's corresponding MAC address. */ 
   struct sr_arpentry* cached_entry = sr_arpcache_lookup(&(sr->cache), target_ip);
   if (cached_entry != NULL) {
+    printf("[INFO] Find IP-MAC pair in cache.\n");
     forward_ip_packet_with_mac(sr, packet, len, outcoming_interface, cached_entry->mac);
     free(cached_entry);
   } else {
+    printf("[INFO] Start ARP Cache request.\n");
     struct sr_arpreq* req = sr_arpcache_queuereq(&(sr->cache), target_ip, packet, len, outcoming_interface->name);
     handle_arpreq(sr, req);
   }
