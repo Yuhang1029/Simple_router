@@ -29,6 +29,7 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 
 
 void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
+    printf("[INFO] *****************");
     time_t now = time(NULL);
     if (difftime(now, req->sent) > 1.0) {
         if (req->times_sent >= 5) {
