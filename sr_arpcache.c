@@ -30,8 +30,10 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 
 void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
     printf("[INFO] *****************\n");
-    time_t now = time(NULL);
-    if (difftime(now, req->sent) > 1.0) {
+    /* time_t now = time(NULL); */
+    time_t now;
+    time(&now);
+    if (difftime(now, req->sent) >= 1.0) {
         printf("[INFO] ++++++++++++++\n");
         if (req->times_sent >= 5) {
             struct sr_packet* head = req->packets;
