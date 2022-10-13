@@ -44,7 +44,6 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
         int len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t);
         uint8_t* packet = malloc(len * sizeof(uint8_t));
 
-        sr_ethernet_hdr_t* ethernet_header = (sr_ethernet_hdr_t*) packet;
         sr_arp_hdr_t* arp_header = (sr_arp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
 
         struct sr_if* outcoming_interface = sr_get_interface(sr, req->packets->iface);
@@ -63,8 +62,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
         memcpy(arp_header->ar_sha, outcoming_interface->addr, sizeof(unsigned char) * ETHER_ADDR_LEN);
         
         /* Send ARP request */
-        ethernet_header->ether_type = htons(ethertype_arp);
-        forward_packet_with_mac(sr, packet, len, outcoming_interface, broadcast);
+        forward_arp_packet_with_mac(sr, packet, len, outcoming_interface, broadcast);
         free(packet);
     }
 }

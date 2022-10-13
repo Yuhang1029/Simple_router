@@ -68,10 +68,13 @@ void sr_print_if_list(struct sr_instance* );
 /* -- sr_router.c -- */
 void sr_init(struct sr_instance* );
 void sr_handlepacket(struct sr_instance* , uint8_t * , unsigned int , char* );
-void forward_packet_with_mac(struct sr_instance* sr, uint8_t * packet, unsigned int len, struct sr_if* outcoming_interface, unsigned char* mac_address);
-void send_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, uint32_t ip);
+void forward_ip_packet_with_mac(struct sr_instance* sr, uint8_t * packet, unsigned int len, struct sr_if* outcoming_interface, unsigned char* mac_address);
+void forward_arp_packet_with_mac(struct sr_instance* sr, uint8_t * packet, unsigned int len, struct sr_if* outcoming_interface, unsigned char* mac_address);
+
+void send_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, char* interface, uint32_t ip);
 void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, char* interface);
 void handle_arp_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, char* interface);
+void find_MAC_address_and_send(struct sr_instance* sr, uint8_t * packet, unsigned int len, char* interface, uint32_t target_ip);
 
 struct sr_if* contains_interface_for_ip(struct sr_instance* sr, uint32_t ip);
 void send_icmp_echo_packet(struct sr_instance* sr, uint8_t* packet, unsigned int len, char* interface, uint8_t type, uint8_t code);
