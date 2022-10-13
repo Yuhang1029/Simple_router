@@ -245,11 +245,13 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
     
   } else {
     printf("[INFO] Router is not the destination for this IP packet.\n");
+    /*
     if (ip_header->ip_ttl == 1) {
       printf("[INFO] IP packet TTL becomes 0.\n");
       send_icmp_type3_packet(sr, packet, len, incoming_interface, (uint8_t)11, (uint8_t)0);
       return;
     }
+    */
 
     /* Recompute the packet checksum over the modified header */ 
     ip_header->ip_ttl--;
