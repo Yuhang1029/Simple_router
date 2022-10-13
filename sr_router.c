@@ -138,7 +138,7 @@ void handle_arp_packet(struct sr_instance* sr, uint8_t * packet, unsigned int le
 
     printf("[INFO] Print ARP request response info.\n");
     print_hdr_eth(arp_reply_eh);
-    print_addr_ip_int(htons(arp_reply_ah->ar_sip));
+    print_addr_ip_int(ntohs(arp_reply_ah->ar_sip));
 
     /* ============= Send Packet ============= */ 
     sr_send_packet(sr, arp_reply, len, interface);

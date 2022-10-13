@@ -57,6 +57,9 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
         arp_header->ar_tip = req->ip;
         arp_header->ar_sip = outcoming_interface->ip;
 
+        printf("[INFO] send ARP request related to ip: \n");
+        print_addr_ip_int(req->ip);
+
         unsigned char broadcast[ETHER_ADDR_LEN] = {255, 255, 255, 255, 255, 255};
         memcpy(arp_header->ar_tha, broadcast, sizeof(unsigned char) * ETHER_ADDR_LEN);
         memcpy(arp_header->ar_sha, outcoming_interface->addr, sizeof(unsigned char) * ETHER_ADDR_LEN);
