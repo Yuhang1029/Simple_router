@@ -269,6 +269,10 @@ void send_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, 
     send_icmp_type3_packet(sr, packet, len, interface, (uint8_t)3, (uint8_t)0); 
   }
   /* Find gateway / next-hop 's corresponding MAC address. */ 
+  printf("[INFO] Find LPM.\n");
+  printf("[INFO] Send this packet through interface: %s\n", node->interface);
+  printf("[INFO] IP address is: \n");
+  print_addr_ip_int(node->gw.s_addr);
   find_MAC_address_and_send(sr, packet, len, node->interface, node->gw.s_addr);
 }
 
