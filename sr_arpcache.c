@@ -29,10 +29,10 @@ void sr_arpcache_sweepreqs(struct sr_instance *sr) {
 
 
 void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
-    printf("[INFO] *****************");
+    printf("[INFO] *****************\n");
     time_t now = time(NULL);
     if (difftime(now, req->sent) > 1.0) {
-        printf("[INFO] ++++++++++++++");
+        printf("[INFO] ++++++++++++++\n");
         if (req->times_sent >= 5) {
             struct sr_packet* head = req->packets;
             while (head != NULL) {
@@ -42,7 +42,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
         }
         sr_arpreq_destroy(&(sr->cache), req);
     } else {
-        printf("[INFO] ============");
+        printf("[INFO] ============\n");
         /* Send ARP request */
         int len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t);
         uint8_t* packet = malloc(len * sizeof(uint8_t));
