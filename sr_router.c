@@ -138,7 +138,7 @@ void handle_arp_packet(struct sr_instance* sr, uint8_t * packet, unsigned int le
 
     printf("[INFO] Print ARP request response info.\n");
     print_hdr_eth(arp_reply_eh);
-    print_addr_ip_int(arp_reply_ah->ar_sip);
+    print_addr_ip_int(htons(arp_reply_ah->ar_sip));
 
     /* ============= Send Packet ============= */ 
     sr_send_packet(sr, arp_reply, len, interface);
@@ -195,6 +195,10 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
   /* Incoming ethernet header & IP header */ 
   /* sr_ethernet_hdr_t* ethernet_header = (sr_ethernet_hdr_t*) packet; */
   sr_ip_hdr_t* ip_header = (sr_ip_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
+  printf("[INFO] Get IP packet from: \n"); 
+  print_addr_ip_int(ip_header->ip_src);
+  printf("[INFO] Would like to send this packet to: \n"); 
+  print_addr_ip_int(ip_header->ip_dst);
 
   /* Sanity-check */ 
   if (!is_ip_checksum_valid(ip_header) || !is_ip_length_valid(len)) {
