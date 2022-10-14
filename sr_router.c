@@ -404,7 +404,7 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
   new_ethernet_header->ether_type = htons(ethertype_ip);
 
   /* Send IP packet */
-  find_MAC_address_and_send(sr, packet, len, interface, new_ip_header->ip_dst);
+  send_ip_packet(sr, packet, len, interface, new_ip_header->ip_dst);
   free(new_packet);
 }
 
