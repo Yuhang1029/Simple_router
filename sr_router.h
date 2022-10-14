@@ -83,5 +83,6 @@ struct sr_rt* longest_prefix_matching(struct sr_instance* sr, uint32_t target_ip
 bool is_icmp_checksum_valid(sr_icmp_hdr_t* icmp_header);
 bool is_ip_checksum_valid(sr_ip_hdr_t* ip_header);
 bool is_ip_length_valid(unsigned int len);
+bool is_icmp_length_valid(unsigned int len);
 
 #endif /* SR_ROUTER_H */

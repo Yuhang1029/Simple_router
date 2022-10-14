@@ -38,8 +38,8 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             struct sr_packet* head = req->packets;
             while (head != NULL) {
                 send_icmp_type3_packet(sr, head->buf, head->len, head->iface, (uint8_t)3, (uint8_t)1);
+                head = head->next;
             }
-            head = head->next;
             sr_arpreq_destroy(&(sr->cache), req);
         } else {
             /* Send ARP request */
@@ -70,6 +70,8 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             /* Send ARP request */
             forward_arp_packet_with_mac(sr, packet, len, outcoming_interface, broadcast);
             free(packet);
+            req->sent = now;
+            req->times_sent++;
         }
     }
 }

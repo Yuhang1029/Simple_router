@@ -98,7 +98,8 @@ void handle_arp_packet(struct sr_instance* sr, uint8_t * packet, unsigned int le
       return;
     }
 
-    uint8_t* arp_reply = (uint8_t*)malloc(sizeof(uint8_t) * len);
+    unsigned int reply_len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t);
+    uint8_t* arp_reply = (uint8_t*)malloc(reply_len);
     /* ============= Build ethernet header ============= */ 
     sr_ethernet_hdr_t* arp_reply_eh = (sr_ethernet_hdr_t*) arp_reply;
     /* Original incoming source ethernet address becomes current destination */ 
@@ -122,9 +123,9 @@ void handle_arp_packet(struct sr_instance* sr, uint8_t * packet, unsigned int le
     arp_reply_ah->ar_pro = arp_header->ar_pro;
     arp_reply_ah->ar_hln = arp_header->ar_hln;
     arp_reply_ah->ar_pln = arp_header->ar_pln;
-
     /* Now the ARP opcode should be reply */ 
     arp_reply_ah->ar_op = htons(arp_op_reply);
+
     /**
      * Logic is the same as before
      * Destination should be original source
@@ -183,6 +184,7 @@ void forward_ip_packet_with_mac(struct sr_instance* sr, uint8_t * packet, unsign
   sr_send_packet(sr, packet, len, outcoming_interface->name);
 }
 
+
 /* Update Ethernet header with destination MAC address and send ARP packet. */ 
 void forward_arp_packet_with_mac(struct sr_instance* sr, uint8_t * packet, unsigned int len, struct sr_if* outcoming_interface, unsigned char* mac_address) {
   sr_ethernet_hdr_t* ethernet_header = (sr_ethernet_hdr_t*)packet;
@@ -211,8 +213,12 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
   /******************   DEBUG  ******************/
 
   /* Sanity-check */ 
-  if (!is_ip_checksum_valid(ip_header) || !is_ip_length_valid(len)) {
-    fprintf(stderr, "[ERROR] IP header Sanity-check is not passed.\n");
+  if (!is_ip_checksum_valid(ip_header)) {
+    fprintf(stderr, "[ERROR] IP header Sanity-check (CheckSum) is not passed.\n");
+    return;
+  } 
+  if (!is_ip_length_valid(len)) {
+    fprintf(stderr, "[ERROR] IP header Sanity-check (Minimum length) is not passed.\n");
     return;
   }
 
@@ -228,7 +234,11 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
       sr_icmp_hdr_t* icmp_header = (sr_icmp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
       /* Sanity-check */ 
       if (!is_icmp_checksum_valid(icmp_header)) {
-        fprintf(stderr, "[ERROR] ICMP header Sanity-check is not passed.\n");
+        fprintf(stderr, "[ERROR] ICMP header Sanity-check (CheckSum) is not passed.\n");
+        return;
+      }
+      if (!is_icmp_length_valid(len)) {
+        fprintf(stderr, "[ERROR] ICMP header Sanity-check (Minimum length) is not passed.\n");
         return;
       }
       
@@ -253,27 +263,43 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
     }
   } else {
     printf("[INFO] Router is not the destination for this IP packet.\n");
+    send_ip_packet(sr, packet, len, incoming_interface, ip_header->ip_dst);
 
-    if (ip_header->ip_ttl == 1) {
-      printf("[INFO] IP packet TTL becomes 0.\n");
+    /*
+    ip_header->ip_ttl--;
+    if (ip_header->ip_ttl == 0) {
+      printf("[INFO] ICMP packet time exceeded.\n");
       send_icmp_type3_packet(sr, packet, len, incoming_interface, (uint8_t)11, (uint8_t)0);
       return;
     }
-    /* Recompute the packet checksum over the modified header */ 
-    ip_header->ip_ttl--;
+
     ip_header->ip_sum = 0;
     ip_header->ip_sum = cksum(ip_header, sizeof(sr_ip_hdr_t));
-
     send_ip_packet(sr, packet, len, incoming_interface, ip_header->ip_dst);
+    */
   }
 }
 
+
 /* Send IP packet when knowing the destination IP address. */ 
 void send_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, char* interface, uint32_t ip) {
+  /* Update TTL */
+  sr_ip_hdr_t* ip_header = (sr_ip_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
+  ip_header->ip_ttl--;
+  if (ip_header->ip_ttl == 0) {
+    printf("[INFO] ICMP packet time exceeded.\n");
+    send_icmp_type3_packet(sr, packet, len, interface, (uint8_t)11, (uint8_t)0);
+    return;
+  }
+
+  /* Recompute the packet checksum over the modified header */ 
+  ip_header->ip_sum = 0;
+  ip_header->ip_sum = cksum(ip_header, sizeof(sr_ip_hdr_t));
+
   /* Check routing table and perform LPM */
   struct sr_rt* node = longest_prefix_matching(sr, ip);
   if (node == NULL) {
-    printf("[INFO] Destination IP address not matched.\n");
+    printf("[INFO] Destination IP address not matched. ICMP net unreachable.\n");
     send_icmp_type3_packet(sr, packet, len, interface, (uint8_t)3, (uint8_t)0); 
   }
   printf("[INFO] Destination IP address matched.\n");
@@ -289,6 +315,7 @@ void send_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, 
   /* Find gateway / next-hop 's corresponding MAC address. */ 
   find_MAC_address_and_send(sr, packet, len, node->interface, node->gw.s_addr);
 }
+
 
 /* Check ARP Cache */
 void find_MAC_address_and_send(struct sr_instance* sr, uint8_t * packet, unsigned int len, char* interface, uint32_t target_ip) {
@@ -308,7 +335,7 @@ void find_MAC_address_and_send(struct sr_instance* sr, uint8_t * packet, unsigne
     forward_ip_packet_with_mac(sr, packet, len, outcoming_interface, cached_entry->mac);
     free(cached_entry);
   } else {
-    printf("[INFO] Start ARP Cache request.\n");
+    printf("[INFO] Start ARP Cache request since corresponding entry is not found.\n");
     struct sr_arpreq* req = sr_arpcache_queuereq(&(sr->cache), target_ip, packet, len, outcoming_interface->name);
     handle_arpreq(sr, req);
   }
@@ -326,6 +353,7 @@ struct sr_if* contains_interface_for_ip(struct sr_instance* sr, uint32_t ip) {
   }
   return NULL;
 }
+
 
 /* Send back Echo reply */ 
 void send_icmp_echo_packet(struct sr_instance* sr, uint8_t* packet, unsigned int len, char* interface, uint8_t type, uint8_t code) {
@@ -468,7 +496,16 @@ bool is_ip_checksum_valid(sr_ip_hdr_t* ip_header) {
 
 /* Check whether IP struct meets minimum length */
 bool is_ip_length_valid(unsigned int len) {
-  if (len < sizeof(sr_ip_hdr_t)) {
+  if (len < (sizeof(sr_ip_hdr_t) + sizeof(sr_ethernet_hdr_t))) {
+    return false;
+  }
+  return true;
+}
+
+
+/* Check whether ICMP struct meets the minimim length*/
+bool is_icmp_length_valid(unsigned int len) {
+  if (len < (sizeof(sr_ip_hdr_t) + sizeof(sr_ethernet_hdr_t) + sizeof(sr_icmp_hdr_t))) {
     return false;
   }
   return true;
