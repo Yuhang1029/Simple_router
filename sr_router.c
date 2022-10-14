@@ -138,7 +138,7 @@ void handle_arp_packet(struct sr_instance* sr, uint8_t * packet, unsigned int le
     /******************   DEBUG  ******************/
     printf("[INFO] Send back ARP response info.\n");
     printf("[DEBUG] Ethernet header of the reply ARP packet is:\n");
-    print_hdr_eth(arp_reply_eh);
+    print_hdr_eth((uint8_t *)arp_reply_eh);
     printf("[DEBUG] Source IP of the reply ARP packet is:  ");
     print_addr_ip_int(ntohl(arp_reply_ah->ar_sip));
     printf("[DEBUG] Target IP of the reply ARP packet is:  ");
