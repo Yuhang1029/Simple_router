@@ -225,6 +225,11 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
   if (contains_interface_for_ip(sr, ip_header->ip_dst) != NULL) {
     printf("[INFO] Router is the destination for this IP packet.\n");
 
+    printf("----------- Receive IP ------------\n");
+    print_hdr_eth(packet);
+    print_hdr_ip(packet + sizeof(sr_ethernet_hdr_t));
+    printf("------------------------------------------\n");
+
     /* Judge ip_protocol */ 
     switch (ntohs(ip_header->ip_p))
     {
