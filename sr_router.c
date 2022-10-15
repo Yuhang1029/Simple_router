@@ -245,9 +245,7 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
       /****   ONLY HANDLE THIS SITUATION   ****/ 
       if (icmp_header->icmp_type == (uint8_t)8) {
         printf("[INFO] ICMP Echo Request.\n");
-
-        send_icmp_message(sr, packet, sr_get_interface(sr, incoming_interface), 0, 0, len);
-        /* send_icmp_echo_packet(sr, packet, len, incoming_interface, (uint8_t)0, (uint8_t)0); */
+        send_icmp_echo_packet(sr, packet, len, incoming_interface, (uint8_t)0, (uint8_t)0);
       }
       break;
     }
@@ -256,8 +254,7 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
     case ip_protocol_udp: {
       printf("[INFO] IP protocol is TCP/UDP.\n");
       /* Port unreachable */ 
-      send_icmp_message(sr, packet, sr_get_interface(sr, incoming_interface), 3, 0, len);
-      /* send_icmp_type3_packet(sr, packet, len, incoming_interface, (uint8_t)3, (uint8_t)3); */
+      send_icmp_type3_packet(sr, packet, len, incoming_interface, (uint8_t)3, (uint8_t)3); 
       break;
     }
     
@@ -291,8 +288,7 @@ void send_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, 
   ip_header->ip_ttl--;
   if (ip_header->ip_ttl == 0) {
     printf("[INFO] ICMP packet time exceeded.\n");
-    send_icmp_message(sr, packet, sr_get_interface(sr, interface), 11, 0, len);
-    /* send_icmp_type3_packet(sr, packet, len, interface, (uint8_t)11, (uint8_t)0); */
+    send_icmp_type3_packet(sr, packet, len, interface, (uint8_t)11, (uint8_t)0); 
     return;
   }
 
@@ -518,167 +514,4 @@ bool is_icmp_length_valid(unsigned int len) {
     return false;
   }
   return true;
-}
-
-
-void send_icmp_message(struct sr_instance *sr, uint8_t *packet, struct sr_if *inf, uint8_t icmp_type, uint8_t icmp_code, unsigned int len)
-{
-    uint8_t *icmp_packet;
-    unsigned int icmp_packet_len;
-    if (icmp_type == 0)
-    { /* Echo Reply */
-        icmp_packet_len = len;
-    }
-    else
-    {
-        icmp_packet_len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t);
-    }
-    icmp_packet = malloc(icmp_packet_len);
-    memcpy(icmp_packet, packet, icmp_packet_len);
-
-    sr_ethernet_hdr_t *eth_hdr = (sr_ethernet_hdr_t *)icmp_packet;
-    memcpy(eth_hdr->ether_dhost, eth_hdr->ether_shost, sizeof(uint8_t) * ETHER_ADDR_LEN);
-    memcpy(eth_hdr->ether_shost, inf->addr, sizeof(uint8_t) * ETHER_ADDR_LEN);
-    eth_hdr->ether_type = htons(ethertype_ip);
-
-    sr_ip_hdr_t *ip_hdr = (sr_ip_hdr_t *)(icmp_packet + sizeof(sr_ethernet_hdr_t));
-
-    /* Choose which interface to send it out on */
-    if ((icmp_type == 0 && icmp_code == 0) || (icmp_type == 3 && icmp_code == 3))
-    { /* If echo reply or port unreachable, it was meant for a router interface, so use the source destination */
-        ip_hdr->ip_src = ((sr_ip_hdr_t *)(packet + sizeof(sr_ethernet_hdr_t)))->ip_dst;
-    }
-    else
-    { /* Otherwise, use any ip from the router itself */
-        ip_hdr->ip_src = inf->ip;
-    }
-    ip_hdr->ip_dst = ((sr_ip_hdr_t *)(packet + sizeof(sr_ethernet_hdr_t)))->ip_src;
-    ip_hdr->ip_ttl = 64;
-    ip_hdr->ip_sum = 0;
-    ip_hdr->ip_p = ip_protocol_icmp;
-    if (icmp_type == 3)
-        ip_hdr->ip_len = htons(sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t));
-    ip_hdr->ip_sum = cksum(ip_hdr, sizeof(sr_ip_hdr_t));
-
-    /* Modify ICMP header */
-    if (icmp_type == 0 && icmp_code == 0) /* Echo Reply */
-    {
-        sr_icmp_hdr_t *icmp_hdr = (sr_icmp_hdr_t *)(icmp_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
-        icmp_hdr->icmp_type = icmp_type;
-        icmp_hdr->icmp_code = icmp_code;
-        icmp_hdr->icmp_sum = 0;
-        icmp_hdr->icmp_sum = cksum(icmp_hdr, len - sizeof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t));
-    }
-    else
-    {
-        sr_icmp_t3_hdr_t *icmp_hdr = (sr_icmp_t3_hdr_t *)(icmp_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
-        icmp_hdr->icmp_type = icmp_type;
-        icmp_hdr->icmp_code = icmp_code;
-        icmp_hdr->icmp_sum = 0;
-        icmp_hdr->next_mtu = 0;
-        icmp_hdr->unused = 0;
-        /* Copy the internet header into the data */
-        memcpy(icmp_hdr->data, packet + sizeof(sr_ethernet_hdr_t), sizeof(sr_ip_hdr_t));
-        /* Copy the first 8 bytes of original datagram's data into the data */
-        memcpy(icmp_hdr->data + sizeof(sr_ip_hdr_t), packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t), 8);
-        icmp_hdr->icmp_sum = cksum(icmp_hdr, sizeof(sr_icmp_t3_hdr_t));
-    }
-
-    printf("----------- Send ICMP Message ------------\n");
-    print_hdr_eth(icmp_packet);
-    print_hdr_ip(icmp_packet + sizeof(sr_ethernet_hdr_t));
-    print_hdr_icmp(icmp_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
-    printf("------------------------------------------\n");
-
-    forward_ip(sr, ip_hdr, eth_hdr, icmp_packet, icmp_packet_len, inf); 
-
-    free(icmp_packet);
-}
-
-void forward_ip(struct sr_instance *sr, sr_ip_hdr_t *ip_hdr, sr_ethernet_hdr_t *eth_hdr, uint8_t *packet, unsigned int len, struct sr_if *src_inf)
-{
-    /* Sanity Check: Minimum Length & Checksum*/
-
-    /* Decrement TTL by 1 */
-    ip_hdr->ip_ttl--;
-    if (ip_hdr->ip_ttl == 0)
-    {
-        /* Send ICMP Message Time Exceeded */
-        printf("ICMP Message Time Exceeded.\n");
-        send_icmp_message(sr, packet, src_inf, 11, 0, len);
-        return;
-    }
-
-    /* Recompute checksum and add back in */
-    ip_hdr->ip_sum = 0;
-    ip_hdr->ip_sum = cksum(ip_hdr, sizeof(sr_ip_hdr_t));
-
-    /* Check the routing table and compare the values to the destination IP address */
-    struct sr_rt *cur_node = sr->routing_table;
-    uint32_t matching_mask = 0;
-    uint32_t matching_address;
-    char inf[sr_IFACE_NAMELEN];
-
-    while (cur_node)
-    {
-        /* Compare the packet destination and the destination in the routing table node, record how many bits match */
-        printf("Checking Longest Prefix...\n");
-        check_longest_prefix(cur_node, ip_hdr->ip_dst, &matching_mask, &matching_address, inf);
-        cur_node = cur_node->next;
-    }
-    if (matching_address)
-    {
-        printf("Longest Prefix Matched!\n");
-        /*
-		* Check the ARP cache for the next-hop MAC address corresponding to the next-hop IP
-		* If it's there, send it
-		* Otherwise, send an ARP request for the next-hop IP (if one hasn’t been sent within the last second), and add the packet to the queue of packets waiting on this ARP request.
-		*/
-        struct sr_arpentry *matching_entry = sr_arpcache_lookup(&sr->cache, matching_address);
-        /* Update the destination and source information for this package */
-        if (matching_entry)
-        {
-            printf("There is a macthing entry.\n");
-            memcpy(eth_hdr->ether_dhost, matching_entry->mac, ETHER_ADDR_LEN);
-            memcpy(eth_hdr->ether_shost, sr_get_interface(sr, inf)->addr, ETHER_ADDR_LEN);
-            sr_send_packet(sr, packet, len, inf);
-            free(matching_entry);
-        }
-        else
-        {
-            /* There was no entry in the ARP cache */
-            printf("There was no entry in the ARP cache.\n");
-            struct sr_arpreq *req = sr_arpcache_queuereq(&sr->cache, matching_address, packet, len, inf);
-            handle_arpreq(sr, req);
-        }
-    }
-    else
-    {
-        /* Send ICMP Net unreachable */
-        printf("ICMP Net Unreachable.\n");
-        send_icmp_message(sr, packet, src_inf, 3, 0, len);
-    }
-    /* If we get here, then matching_address was null, then we drop the packet and send an error */
-}
-
-
-void check_longest_prefix(struct sr_rt *cur_node, uint32_t packet_dest, uint32_t *matching_mask, uint32_t *matching_address, char *inf)
-{
-    /* Mask the packet's destination address to get the prefix */
-    int masked_dest = packet_dest & cur_node->mask.s_addr;
-    /* If the prefix matches the entry's destination as well, it's a match */
-    /* If doesn't work try: if (masked_dest == cur_node->dest.s_addr & cur_node->mask.s_addr) instead */
-    if (masked_dest == (cur_node->dest.s_addr & cur_node->mask.s_addr))
-    {
-        /* If this is true then we know that this match is our best match (since the number of bits compared was higher)
-         Save the data for comparison later */
-        if (cur_node->mask.s_addr > *matching_mask)
-        {
-            *matching_mask = cur_node->mask.s_addr;
-            *matching_address = cur_node->gw.s_addr;
-            strncpy(inf, cur_node->interface, sr_IFACE_NAMELEN);
-        }
-        /* If it's false then it's not our best match, just ignore it */
-    }
-    /* If the prefix doesn't match then we do nothing */
 }
