@@ -386,6 +386,7 @@ void send_icmp_echo_packet(struct sr_instance* sr, uint8_t* packet, unsigned int
 
 void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned int len, char* interface, uint8_t type, uint8_t code) {
   printf("[INFO] send_icmp_type3_packet type is %d, code is %d\n", type, code);
+  printf("[INFO] Receive the ICMP packet from %s.\n, interface");
   unsigned int new_len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t);
   uint8_t* new_packet = malloc(new_len * sizeof(uint8_t));
 
