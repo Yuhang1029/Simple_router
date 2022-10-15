@@ -417,7 +417,7 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
   new_ip_header->ip_len = htons(sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t));
   new_ip_header->ip_id = htons(0);
   new_ip_header->ip_off = prev_ip_header->ip_off;
-  new_ip_header->ip_p = (uint8_t)ip_protocol_icmp;
+  new_ip_header->ip_p = ip_protocol_icmp;
   new_ip_header->ip_ttl = INIT_TTL;
 
   if (type == 3 && code == 3) {
@@ -435,8 +435,14 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
   memcpy(new_ethernet_header->ether_dhost, prev_ethernet_header->ether_shost, ETHER_ADDR_LEN * sizeof(uint8_t));
   memcpy(new_ethernet_header->ether_shost, sr_get_interface(sr, interface)->addr, ETHER_ADDR_LEN * sizeof(uint8_t));
 
+  printf("----------- Send ICMP ------------\n");
+  print_hdr_eth(new_packet);
+  print_hdr_ip(new_packet + sizeof(sr_ethernet_hdr_t));
+  print_hdr_icmp(new_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
+  printf("------------------------------------------\n");
+
   /* Send IP packet */
-  send_ip_packet(sr, packet, len, interface, new_ip_header->ip_dst);
+  send_ip_packet(sr, new_packet, len, interface, new_ip_header->ip_dst);
   free(new_packet);
 }
 
