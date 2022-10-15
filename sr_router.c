@@ -457,7 +457,7 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
   printf("------------------------------------------\n");
 
   /* Send IP packet */
-  send_ip_packet(sr, new_packet, len, interface, new_ip_header->ip_dst);
+  send_ip_packet(sr, new_packet, new_len, interface, new_ip_header->ip_dst);
   free(new_packet);
 }
 
