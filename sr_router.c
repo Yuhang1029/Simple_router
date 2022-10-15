@@ -308,6 +308,7 @@ void send_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, 
   if (node == NULL) {
     printf("[INFO] Destination IP address not matched. ICMP net unreachable.\n");
     send_icmp_type3_packet(sr, packet, len, interface, (uint8_t)3, (uint8_t)0); 
+    return;
   }
   printf("[INFO] Destination IP address matched.\n");
 
@@ -399,11 +400,11 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
 
   assert(new_packet);
 
-  printf("----------- Receive ICMP ------------\n");
+  printf("----------- Receive ICMP Packet ------------\n");
   print_hdr_eth(packet);
   print_hdr_ip(packet + sizeof(sr_ethernet_hdr_t));
   print_hdr_icmp(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
-  printf("------------------------------------------\n");
+  printf("############################################\n");
 
   /* Previous */
   sr_ethernet_hdr_t* prev_ethernet_header = (sr_ethernet_hdr_t*) packet;
@@ -450,11 +451,11 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
   memcpy(new_ethernet_header->ether_dhost, prev_ethernet_header->ether_shost, ETHER_ADDR_LEN * sizeof(uint8_t));
   memcpy(new_ethernet_header->ether_shost, sr_get_interface(sr, interface)->addr, ETHER_ADDR_LEN * sizeof(uint8_t));
 
-  printf("----------- Send ICMP ------------\n");
+  printf("----------- Send ICMP Packet------------\n");
   print_hdr_eth(new_packet);
   print_hdr_ip(new_packet + sizeof(sr_ethernet_hdr_t));
   print_hdr_icmp(new_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
-  printf("------------------------------------------\n");
+  printf("############################################\n");
 
   /* Send IP packet */
   send_ip_packet(sr, new_packet, new_len, interface, new_ip_header->ip_dst);
