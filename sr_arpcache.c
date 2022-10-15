@@ -45,10 +45,21 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
         } else {
             /* Send ARP request */
             int len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_arp_hdr_t);
-            uint8_t* packet = malloc(len * sizeof(uint8_t));
-            sr_arp_hdr_t* arp_header = (sr_arp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
+            uint8_t* packet = malloc(len);
+
+
+
             struct sr_if* outcoming_interface = sr_get_interface(sr, req->packets->iface);
-            
+
+            /* Set Ethernet Header */
+            sr_ethernet_hdr_t *eth_hdr = (sr_ethernet_hdr_t *)packet;
+            /* Destination MAC: FF-FF-FF-FF-FF-FF */
+            memset(eth_hdr->ether_dhost, 0xFF, ETHER_ADDR_LEN);
+            memcpy(eth_hdr->ether_shost, outcoming_interface->addr, ETHER_ADDR_LEN);
+            eth_hdr->ether_type = htons(ethertype_arp);
+
+
+            sr_arp_hdr_t* arp_header = (sr_arp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));            
             /* Send ARP request */
             arp_header->ar_hrd = (unsigned short)htons(arp_hrd_ethernet); 
             arp_header->ar_pro = (unsigned short)htons(ethertype_ip);
@@ -65,11 +76,11 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             /******************   DEBUG  ******************/
 
             unsigned char broadcast[ETHER_ADDR_LEN] = {255, 255, 255, 255, 255, 255};
-            memcpy(arp_header->ar_tha, broadcast, sizeof(unsigned char) * ETHER_ADDR_LEN);
+            memcpy(arp_header->ar_tha, 0x00, sizeof(unsigned char) * ETHER_ADDR_LEN);
             memcpy(arp_header->ar_sha, outcoming_interface->addr, sizeof(unsigned char) * ETHER_ADDR_LEN);
             
             /* Send ARP request */
-            forward_arp_packet_with_mac(sr, packet, len, outcoming_interface, broadcast);
+            sr_send_packet(sr, packet, len, outcoming_interface->name);
             free(packet);
             req->sent = now;
             req->times_sent++;
