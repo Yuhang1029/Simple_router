@@ -75,7 +75,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             printf("\n");
             /******************   DEBUG  ******************/
 
-            unsigned char broadcast[ETHER_ADDR_LEN] = {255, 255, 255, 255, 255, 255};
+            /* unsigned char broadcast[ETHER_ADDR_LEN] = {255, 255, 255, 255, 255, 255}; */
             memcpy(arp_header->ar_tha, 0x00, sizeof(unsigned char) * ETHER_ADDR_LEN);
             memcpy(arp_header->ar_sha, outcoming_interface->addr, sizeof(unsigned char) * ETHER_ADDR_LEN);
             
