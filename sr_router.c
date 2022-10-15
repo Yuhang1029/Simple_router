@@ -231,7 +231,7 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
     printf("------------------------------------------\n");
 
     /* Judge ip_protocol */ 
-    switch (ntohs(ip_header->ip_p))
+    switch (ip_header->ip_p)
     {
     case ip_protocol_icmp: {
       printf("[INFO] IP protocol is ICMP Echo.\n");
