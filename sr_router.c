@@ -238,10 +238,12 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
 
       sr_icmp_hdr_t* icmp_header = (sr_icmp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
       /* Sanity-check */ 
+      /*
       if (!is_icmp_checksum_valid(icmp_header)) {
         fprintf(stderr, "[ERROR] ICMP header Sanity-check (CheckSum) is not passed.\n");
         return;
       }
+      */
       if (!is_icmp_length_valid(len)) {
         fprintf(stderr, "[ERROR] ICMP header Sanity-check (Minimum length) is not passed.\n");
         return;
