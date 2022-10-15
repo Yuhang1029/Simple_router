@@ -140,9 +140,9 @@ void handle_arp_packet(struct sr_instance* sr, uint8_t * packet, unsigned int le
     printf("[INFO] Send back ARP response info.\n");
     printf("[DEBUG] Ethernet header of the reply ARP packet is:\n");
     print_hdr_eth((uint8_t *)arp_reply_eh);
-    printf("[DEBUG] Source IP of the reply ARP packet is:  ");
+    printf("[DEBUG] Source IP of the reply ARP packet is: \n");
     print_addr_ip_int(ntohl(arp_reply_ah->ar_sip));
-    printf("[DEBUG] Target IP of the reply ARP packet is:  ");
+    printf("[DEBUG] Target IP of the reply ARP packet is:  \n");
     print_addr_ip_int(ntohl(arp_reply_ah->ar_tip));
     printf("\n");
     /******************   DEBUG  ******************/
@@ -205,9 +205,9 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
   sr_ip_hdr_t* ip_header = (sr_ip_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
 
   /******************   DEBUG  ******************/
-  printf("[DEBUG] Get IP packet from the ip address below:  "); 
+  printf("[DEBUG] Get IP packet from the ip address below:  \n"); 
   print_addr_ip_int(ntohl(ip_header->ip_src));
-  printf("[DEBUG] Received IP packet would like to go to:  "); 
+  printf("[DEBUG] Received IP packet would like to go to:  \n"); 
   print_addr_ip_int(ntohl(ip_header->ip_dst));
   printf("\n");
   /******************   DEBUG  ******************/
@@ -307,7 +307,7 @@ void send_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, 
 
   /******************   DEBUG  ******************/
   printf("[DEBUG] (send_ip_packet) - outcoming interface is: %s\n", node->interface);
-  printf("[DEBUG] (send_ip_packet) target ip address is:  ");
+  printf("[DEBUG] (send_ip_packet) target ip address is:  \n");
   print_addr_ip_int(ntohl(node->gw.s_addr));
   printf("\n");
   /******************   DEBUG  ******************/
@@ -326,9 +326,9 @@ void find_MAC_address_and_send(struct sr_instance* sr, uint8_t * packet, unsigne
   if (cached_entry != NULL) {
     printf("[INFO] Find IP-MAC pair in cache.\n");
     /******************   DEBUG  ******************/
-    printf("[DEBUG] (find_MAC_address_and_send) target ip address is:  ");
+    printf("[DEBUG] (find_MAC_address_and_send) target ip address is: \n");
     print_addr_ip_int(ntohl(target_ip));
-    printf("[DEBUG] (find_MAC_address_and_send) target MAC address is:  ");
+    printf("[DEBUG] (find_MAC_address_and_send) target MAC address is: \n");
     print_addr_eth(cached_entry->mac);
     /******************   DEBUG  ******************/
 
@@ -437,7 +437,6 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
 }
 
 
-
 /* Find the longest prefix match of a destination IP address in the routing table */
 struct sr_rt* longest_prefix_matching(struct sr_instance* sr, uint32_t target_ip) {
   if (sr->routing_table == NULL) {
@@ -479,6 +478,7 @@ bool is_icmp_checksum_valid(sr_icmp_hdr_t* icmp_header) {
   return false;
 }
 
+
 /* check whether IP's checksum is valid or not */
 bool is_ip_checksum_valid(sr_ip_hdr_t* ip_header) {
   uint16_t original_checksum = ip_header->ip_sum;
@@ -493,6 +493,7 @@ bool is_ip_checksum_valid(sr_ip_hdr_t* ip_header) {
   }
   return false;
 }
+
 
 /* Check whether IP struct meets minimum length */
 bool is_ip_length_valid(unsigned int len) {

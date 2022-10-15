@@ -1,3 +1,6 @@
 {
-    "C_Cpp.errorSquiggles": "EnabledIfIncludesResolve"
+    "C_Cpp.errorSquiggles": "EnabledIfIncludesResolve",
+    "files.associations": {
+        "sr_router.h": "c"
+    }
 }

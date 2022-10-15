@@ -37,6 +37,7 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             printf("[INFO] Send ARP request 5 times but still not get response.\n");
             struct sr_packet* head = req->packets;
             while (head != NULL) {
+                printf("[INFO] ICMP host unreachable.\n");
                 send_icmp_type3_packet(sr, head->buf, head->len, head->iface, (uint8_t)3, (uint8_t)1);
                 head = head->next;
             }
