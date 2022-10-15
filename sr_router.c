@@ -392,6 +392,12 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
 
   assert(new_packet);
 
+  printf("----------- Receive ICMP ------------\n");
+  print_hdr_eth(packet);
+  print_hdr_ip(packet + sizeof(sr_ethernet_hdr_t));
+  print_hdr_icmp(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
+  printf("------------------------------------------\n");
+
   /* Previous */
   sr_ethernet_hdr_t* prev_ethernet_header = (sr_ethernet_hdr_t*) packet;
   sr_ip_hdr_t* prev_ip_header = (sr_ip_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
