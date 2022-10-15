@@ -393,7 +393,7 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
   assert(new_packet);
 
   /* Previous */
-  /* sr_ethernet_hdr_t* prev_ethernet_header = (sr_ethernet_hdr_t*) packet; */
+  sr_ethernet_hdr_t* prev_ethernet_header = (sr_ethernet_hdr_t*) packet;
   sr_ip_hdr_t* prev_ip_header = (sr_ip_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
   sr_icmp_hdr_t* prev_icmp_header = (sr_icmp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t)); 
 
@@ -432,9 +432,12 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
 
   /* Build Ethernet header */
   new_ethernet_header->ether_type = htons(ethertype_ip);
+  memcpy(new_ethernet_header->ether_dhost, prev_ethernet_header->ether_shost, ETHER_ADDR_LEN * sizeof(uint8_t));
+  memcpy(new_ethernet_header->ether_shost, sr_get_interface(sr, interface)->addr, ETHER_ADDR_LEN * sizeof(uint8_t));
 
   /* Send IP packet */
-  send_ip_packet(sr, packet, len, interface, new_ip_header->ip_dst);
+  /*send_ip_packet(sr, packet, len, interface, new_ip_header->ip_dst);*/
+  sr_send_packet(sr, packet, len, interface);
   free(new_packet);
 }
 
