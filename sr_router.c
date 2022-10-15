@@ -385,8 +385,8 @@ void send_icmp_echo_packet(struct sr_instance* sr, uint8_t* packet, unsigned int
 
 
 void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned int len, char* interface, uint8_t type, uint8_t code) {
-  printf("[INFO] send_icmp_type3_packet type is %d, code is %d\n", type, code);
-  printf("[INFO] Receive the ICMP packet from %s.\n", interface);
+  printf("[INFO] (send_icmp_type3_packet) - Send_icmp_type3_packet type is %d, code is %d\n", type, code);
+  printf("[INFO] (send_icmp_type3_packet) - Receive the ICMP packet from %s.\n", interface);
   unsigned int new_len = sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t);
   uint8_t* new_packet = malloc(new_len * sizeof(uint8_t));
 
@@ -395,7 +395,7 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
   /* Previous */
   /* sr_ethernet_hdr_t* prev_ethernet_header = (sr_ethernet_hdr_t*) packet; */
   sr_ip_hdr_t* prev_ip_header = (sr_ip_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
-  /* sr_icmp_hdr_t* prev_icmp_header = (sr_icmp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t)); */
+  sr_icmp_hdr_t* prev_icmp_header = (sr_icmp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t)); 
 
   /* Current */
   sr_ethernet_hdr_t* new_ethernet_header = (sr_ethernet_hdr_t*) new_packet;
@@ -408,6 +408,7 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
   new_icmp_t3_header->unused = (uint16_t)0;
   new_icmp_t3_header->next_mtu = (uint16_t)1500;
   memcpy(new_icmp_t3_header->data, prev_ip_header, ICMP_DATA_SIZE);
+  memcpy(new_icmp_t3_header->data + sizeof(sr_ip_hdr_t), prev_icmp_header,8);
   new_icmp_t3_header->icmp_sum = (uint16_t)0;
   new_icmp_t3_header->icmp_sum = cksum(new_icmp_t3_header, sizeof(sr_icmp_t3_hdr_t));
 

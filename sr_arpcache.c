@@ -59,8 +59,8 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             arp_header->ar_sip = outcoming_interface->ip;
 
             /******************   DEBUG  ******************/
-            printf("[DEBUG] Send ARP request related to ip: ");
-            print_addr_ip_int(req->ip);
+            printf("[DEBUG] (handle_arpreq) - Send ARP request related to ip: \n");
+            print_addr_ip_int(ntohl(req->ip));
             printf("\n");
             /******************   DEBUG  ******************/
 
