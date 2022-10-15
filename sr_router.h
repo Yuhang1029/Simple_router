@@ -89,5 +89,7 @@ bool is_icmp_length_valid(unsigned int len);
 
 
 void send_icmp_message(struct sr_instance *sr, uint8_t *packet, struct sr_if *inf, uint8_t icmp_type, uint8_t icmp_code, unsigned int len);
+void forward_ip(struct sr_instance *sr, sr_ip_hdr_t *ip_hdr, sr_ethernet_hdr_t *eth_hdr, uint8_t *packet, unsigned int len, struct sr_if *src_inf);
+void check_longest_prefix(struct sr_rt *cur_node, uint32_t packet_dest, uint32_t *matching_mask, uint32_t *matching_address, char *inf);
 
 #endif /* SR_ROUTER_H */

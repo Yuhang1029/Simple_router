@@ -590,9 +590,95 @@ void send_icmp_message(struct sr_instance *sr, uint8_t *packet, struct sr_if *in
     print_hdr_icmp(icmp_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
     printf("------------------------------------------\n");
 
-    /* forward_ip(sr, ip_hdr, eth_hdr, icmp_packet, icmp_packet_len, inf); */
-
-    send_ip_packet(sr, packet, len, inf->name, ip_hdr->ip_dst);
+    forward_ip(sr, ip_hdr, eth_hdr, icmp_packet, icmp_packet_len, inf); 
 
     free(icmp_packet);
+}
+
+void forward_ip(struct sr_instance *sr, sr_ip_hdr_t *ip_hdr, sr_ethernet_hdr_t *eth_hdr, uint8_t *packet, unsigned int len, struct sr_if *src_inf)
+{
+    /* Sanity Check: Minimum Length & Checksum*/
+
+    /* Decrement TTL by 1 */
+    ip_hdr->ip_ttl--;
+    if (ip_hdr->ip_ttl == 0)
+    {
+        /* Send ICMP Message Time Exceeded */
+        printf("ICMP Message Time Exceeded.\n");
+        send_icmp_message(sr, packet, src_inf, 11, 0, len);
+        return;
+    }
+
+    /* Recompute checksum and add back in */
+    ip_hdr->ip_sum = 0;
+    ip_hdr->ip_sum = cksum(ip_hdr, sizeof(sr_ip_hdr_t));
+
+    /* Check the routing table and compare the values to the destination IP address */
+    struct sr_rt *cur_node = sr->routing_table;
+    uint32_t matching_mask = 0;
+    uint32_t matching_address;
+    char inf[sr_IFACE_NAMELEN];
+
+    while (cur_node)
+    {
+        /* Compare the packet destination and the destination in the routing table node, record how many bits match */
+        printf("Checking Longest Prefix...\n");
+        check_longest_prefix(cur_node, ip_hdr->ip_dst, &matching_mask, &matching_address, inf);
+        cur_node = cur_node->next;
+    }
+    if (matching_address)
+    {
+        printf("Longest Prefix Matched!\n");
+        /*
+		* Check the ARP cache for the next-hop MAC address corresponding to the next-hop IP
+		* If it's there, send it
+		* Otherwise, send an ARP request for the next-hop IP (if one hasn’t been sent within the last second), and add the packet to the queue of packets waiting on this ARP request.
+		*/
+        struct sr_arpentry *matching_entry = sr_arpcache_lookup(&sr->cache, matching_address);
+        /* Update the destination and source information for this package */
+        if (matching_entry)
+        {
+            printf("There is a macthing entry.\n");
+            memcpy(eth_hdr->ether_dhost, matching_entry->mac, ETHER_ADDR_LEN);
+            memcpy(eth_hdr->ether_shost, sr_get_interface(sr, inf)->addr, ETHER_ADDR_LEN);
+            sr_send_packet(sr, packet, len, inf);
+            free(matching_entry);
+        }
+        else
+        {
+            /* There was no entry in the ARP cache */
+            printf("There was no entry in the ARP cache.\n");
+            struct sr_arpreq *req = sr_arpcache_queuereq(&sr->cache, matching_address, packet, len, inf);
+            handle_arpreq(sr, req);
+        }
+    }
+    else
+    {
+        /* Send ICMP Net unreachable */
+        printf("ICMP Net Unreachable.\n");
+        send_icmp_message(sr, packet, src_inf, 3, 0, len);
+    }
+    /* If we get here, then matching_address was null, then we drop the packet and send an error */
+}
+
+
+void check_longest_prefix(struct sr_rt *cur_node, uint32_t packet_dest, uint32_t *matching_mask, uint32_t *matching_address, char *inf)
+{
+    /* Mask the packet's destination address to get the prefix */
+    int masked_dest = packet_dest & cur_node->mask.s_addr;
+    /* If the prefix matches the entry's destination as well, it's a match */
+    /* If doesn't work try: if (masked_dest == cur_node->dest.s_addr & cur_node->mask.s_addr) instead */
+    if (masked_dest == (cur_node->dest.s_addr & cur_node->mask.s_addr))
+    {
+        /* If this is true then we know that this match is our best match (since the number of bits compared was higher)
+         Save the data for comparison later */
+        if (cur_node->mask.s_addr > *matching_mask)
+        {
+            *matching_mask = cur_node->mask.s_addr;
+            *matching_address = cur_node->gw.s_addr;
+            strncpy(inf, cur_node->interface, sr_IFACE_NAMELEN);
+        }
+        /* If it's false then it's not our best match, just ignore it */
+    }
+    /* If the prefix doesn't match then we do nothing */
 }
