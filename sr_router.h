@@ -85,4 +85,9 @@ bool is_ip_checksum_valid(sr_ip_hdr_t* ip_header);
 bool is_ip_length_valid(unsigned int len);
 bool is_icmp_length_valid(unsigned int len);
 
+
+
+
+void send_icmp_message(struct sr_instance *sr, uint8_t *packet, struct sr_if *inf, uint8_t icmp_type, uint8_t icmp_code, unsigned int len);
+
 #endif /* SR_ROUTER_H */
