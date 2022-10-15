@@ -419,6 +419,8 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
   new_icmp_t3_header->icmp_sum = cksum(new_icmp_t3_header, sizeof(sr_icmp_t3_hdr_t));
 
   /* Build IP header */
+  new_ip_header->ip_v = prev_ip_header->ip_v;
+  new_ip_header->ip_hl = prev_ip_header->ip_hl;
   new_ip_header->ip_tos = prev_ip_header->ip_tos;
   new_ip_header->ip_len = htons(sizeof(sr_ip_hdr_t) + sizeof(sr_icmp_t3_hdr_t));
   new_ip_header->ip_id = htons(0);
