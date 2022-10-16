@@ -405,7 +405,7 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
   /* Previous */
   sr_ethernet_hdr_t* prev_ethernet_header = (sr_ethernet_hdr_t*) packet;
   sr_ip_hdr_t* prev_ip_header = (sr_ip_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
-  sr_icmp_hdr_t* prev_icmp_header = (sr_icmp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t)); 
+  /* sr_icmp_hdr_t* prev_icmp_header = (sr_icmp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t)); */
 
   /* Current */
   sr_ethernet_hdr_t* new_ethernet_header = (sr_ethernet_hdr_t*) new_packet;
