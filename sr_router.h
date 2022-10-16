@@ -80,7 +80,7 @@ struct sr_if* contains_interface_for_ip(struct sr_instance* sr, uint32_t ip);
 void send_icmp_echo_packet(struct sr_instance* sr, uint8_t* packet, unsigned int len, char* interface, uint8_t type, uint8_t code);
 void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned int len, char* interface, uint8_t type, uint8_t code);
 struct sr_rt* longest_prefix_matching(struct sr_instance* sr, uint32_t target_ip);
-bool is_icmp_checksum_valid(sr_icmp_hdr_t* icmp_header);
+/* bool is_icmp_checksum_valid(sr_icmp_hdr_t* icmp_header); */
 bool is_ip_checksum_valid(sr_ip_hdr_t* ip_header);
 bool is_ip_length_valid(unsigned int len);
 bool is_icmp_length_valid(unsigned int len);

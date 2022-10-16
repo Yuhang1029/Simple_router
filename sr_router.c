@@ -405,7 +405,6 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
   /* Previous */
   sr_ethernet_hdr_t* prev_ethernet_header = (sr_ethernet_hdr_t*) packet;
   sr_ip_hdr_t* prev_ip_header = (sr_ip_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
-  /* sr_icmp_hdr_t* prev_icmp_header = (sr_icmp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t)); */
 
   /* Current */
   sr_ethernet_hdr_t* new_ethernet_header = (sr_ethernet_hdr_t*) new_packet;
@@ -418,7 +417,6 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
   new_icmp_t3_header->unused = (uint16_t)0;
   new_icmp_t3_header->next_mtu = (uint16_t)1500;
   memcpy(new_icmp_t3_header->data, prev_ip_header, ICMP_DATA_SIZE);
-  /* memcpy(new_icmp_t3_header->data + sizeof(sr_ip_hdr_t), prev_icmp_header,8); */
   new_icmp_t3_header->icmp_sum = (uint16_t)0;
   new_icmp_t3_header->icmp_sum = cksum(new_icmp_t3_header, sizeof(sr_icmp_t3_hdr_t));
 
@@ -487,7 +485,7 @@ struct sr_rt* longest_prefix_matching(struct sr_instance* sr, uint32_t target_ip
 }
 
 
-/* Check whether ICMP's checksum is valid or not  */
+/* Check whether ICMP's checksum is valid or not  
 bool is_icmp_checksum_valid(sr_icmp_hdr_t* icmp_header) {
   uint16_t original_checksum = icmp_header->icmp_sum;
   icmp_header->icmp_sum = (uint16_t)0;
@@ -499,6 +497,7 @@ bool is_icmp_checksum_valid(sr_icmp_hdr_t* icmp_header) {
   }
   return false;
 }
+*/
 
 
 /* check whether IP's checksum is valid or not */
