@@ -242,12 +242,6 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
 
       sr_icmp_hdr_t* icmp_header = (sr_icmp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
       /* Sanity-check */ 
-      /*
-      if (!is_icmp_checksum_valid(icmp_header)) {
-        fprintf(stderr, "[ERROR] ICMP header Sanity-check (CheckSum) is not passed.\n");
-        return;
-      }
-      */
       if (!is_icmp_length_valid(len)) {
         fprintf(stderr, "[ERROR] ICMP header Sanity-check (Minimum length) is not passed.\n");
         return;
@@ -270,6 +264,7 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
     }
     
     default:
+      printf("[INFO] IP protocol is not TCP/UDP/ICMP Echo. Drop it directly.\n");
       break;
     }
   } else {
@@ -483,21 +478,6 @@ struct sr_rt* longest_prefix_matching(struct sr_instance* sr, uint32_t target_ip
   }
   return longest_prefix;
 }
-
-
-/* Check whether ICMP's checksum is valid or not  
-bool is_icmp_checksum_valid(sr_icmp_hdr_t* icmp_header) {
-  uint16_t original_checksum = icmp_header->icmp_sum;
-  icmp_header->icmp_sum = (uint16_t)0;
-  uint16_t computed_checksum = cksum(icmp_header, sizeof(sr_icmp_hdr_t));
-
-  icmp_header->icmp_sum = original_checksum;
-  if (original_checksum == computed_checksum) {
-    return true;
-  }
-  return false;
-}
-*/
 
 
 /* check whether IP's checksum is valid or not */
