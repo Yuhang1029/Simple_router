@@ -50,10 +50,10 @@ void handle_arpreq(struct sr_instance *sr, struct sr_arpreq* req) {
             struct sr_if* outcoming_interface = sr_get_interface(sr, req->packets->iface);
 
             /* Set Ethernet Header */
-            sr_ethernet_hdr_t *eth_hdr = (sr_ethernet_hdr_t *)packet;
-            memset(eth_hdr->ether_dhost, 0xFF, ETHER_ADDR_LEN);
-            memcpy(eth_hdr->ether_shost, outcoming_interface->addr, ETHER_ADDR_LEN);
-            eth_hdr->ether_type = htons(ethertype_arp);
+            sr_ethernet_hdr_t *ethernet_header = (sr_ethernet_hdr_t *)packet;
+            memset(ethernet_header->ether_dhost, 0xFF, ETHER_ADDR_LEN);
+            memcpy(ethernet_header->ether_shost, outcoming_interface->addr, ETHER_ADDR_LEN);
+            ethernet_header->ether_type = htons(ethertype_arp);
 
 
             sr_arp_hdr_t* arp_header = (sr_arp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));            

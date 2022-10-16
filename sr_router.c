@@ -137,6 +137,7 @@ void handle_arp_packet(struct sr_instance* sr, uint8_t * packet, unsigned int le
     arp_reply_ah->ar_sip = outcome_interface->ip;
 
     /******************   DEBUG  ******************/
+    printf("[DEBUG] ------------------------------\n");
     printf("[INFO] Send back ARP response info.\n");
     printf("[DEBUG] Ethernet header of the reply ARP packet is:\n");
     print_hdr_eth((uint8_t *)arp_reply_eh);
@@ -205,6 +206,7 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
   sr_ip_hdr_t* ip_header = (sr_ip_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
 
   /******************   DEBUG  ******************/
+  printf("[DEBUG] ------------------------------\n");
   printf("[DEBUG] Get IP packet from the ip address below:  \n"); 
   print_addr_ip_int(ntohl(ip_header->ip_src));
   printf("[DEBUG] Received IP packet would like to go to:  \n"); 
@@ -225,10 +227,12 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
   if (contains_interface_for_ip(sr, ip_header->ip_dst) != NULL) {
     printf("[INFO] Router is the destination for this IP packet.\n");
 
-    printf("----------- Receive IP ------------\n");
+    /******************   DEBUG  ******************/
+    printf("[DEBUG] --------- Received IP -----------\n");
     print_hdr_eth(packet);
     print_hdr_ip(packet + sizeof(sr_ethernet_hdr_t));
     printf("------------------------------------------\n");
+    /******************   DEBUG  ******************/
 
     /* Judge ip_protocol */ 
     switch (ip_header->ip_p)
@@ -271,19 +275,6 @@ void handle_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len
   } else {
     printf("[INFO] Router is not the destination for this IP packet.\n");
     send_ip_packet(sr, packet, len, incoming_interface, ip_header->ip_dst);
-
-    /*
-    ip_header->ip_ttl--;
-    if (ip_header->ip_ttl == 0) {
-      printf("[INFO] ICMP packet time exceeded.\n");
-      send_icmp_type3_packet(sr, packet, len, incoming_interface, (uint8_t)11, (uint8_t)0);
-      return;
-    }
-
-    ip_header->ip_sum = 0;
-    ip_header->ip_sum = cksum(ip_header, sizeof(sr_ip_hdr_t));
-    send_ip_packet(sr, packet, len, incoming_interface, ip_header->ip_dst);
-    */
   }
 }
 
@@ -314,6 +305,7 @@ void send_ip_packet(struct sr_instance* sr, uint8_t * packet, unsigned int len, 
 
 
   /******************   DEBUG  ******************/
+  printf("[DEBUG] ------------------------------\n");
   printf("[DEBUG] (send_ip_packet) - outcoming interface is: %s\n", node->interface);
   printf("[DEBUG] (send_ip_packet) target ip address is:  \n");
   print_addr_ip_int(ntohl(node->gw.s_addr));
@@ -333,11 +325,15 @@ void find_MAC_address_and_send(struct sr_instance* sr, uint8_t * packet, unsigne
   struct sr_arpentry* cached_entry = sr_arpcache_lookup(&(sr->cache), target_ip);
   if (cached_entry != NULL) {
     printf("[INFO] Find IP-MAC pair in cache.\n");
+
+
     /******************   DEBUG  ******************/
+    printf("[DEBUG] ------------------------------\n");
     printf("[DEBUG] (find_MAC_address_and_send) target ip address is: \n");
     print_addr_ip_int(ntohl(target_ip));
     printf("[DEBUG] (find_MAC_address_and_send) target MAC address is: \n");
     print_addr_eth(cached_entry->mac);
+    printf("\n");
     /******************   DEBUG  ******************/
 
     forward_ip_packet_with_mac(sr, packet, len, outcoming_interface, cached_entry->mac);
@@ -400,11 +396,11 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
 
   assert(new_packet);
 
-  printf("----------- Receive ICMP Packet ------------\n");
+  printf("[DEBUG] -------- Received ICMP Packet --------\n");
   print_hdr_eth(packet);
   print_hdr_ip(packet + sizeof(sr_ethernet_hdr_t));
   print_hdr_icmp(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
-  printf("############################################\n");
+  printf("------------------------------------------\n");
 
   /* Previous */
   sr_ethernet_hdr_t* prev_ethernet_header = (sr_ethernet_hdr_t*) packet;
@@ -422,7 +418,7 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
   new_icmp_t3_header->unused = (uint16_t)0;
   new_icmp_t3_header->next_mtu = (uint16_t)1500;
   memcpy(new_icmp_t3_header->data, prev_ip_header, ICMP_DATA_SIZE);
-  memcpy(new_icmp_t3_header->data + sizeof(sr_ip_hdr_t), prev_icmp_header,8);
+  /* memcpy(new_icmp_t3_header->data + sizeof(sr_ip_hdr_t), prev_icmp_header,8); */
   new_icmp_t3_header->icmp_sum = (uint16_t)0;
   new_icmp_t3_header->icmp_sum = cksum(new_icmp_t3_header, sizeof(sr_icmp_t3_hdr_t));
 
@@ -451,11 +447,11 @@ void send_icmp_type3_packet(struct sr_instance* sr, uint8_t* packet, unsigned in
   memcpy(new_ethernet_header->ether_dhost, prev_ethernet_header->ether_shost, ETHER_ADDR_LEN * sizeof(uint8_t));
   memcpy(new_ethernet_header->ether_shost, sr_get_interface(sr, interface)->addr, ETHER_ADDR_LEN * sizeof(uint8_t));
 
-  printf("----------- Send ICMP Packet------------\n");
+  printf("[DEBUG] ------- Send ICMP3 Packet--------\n");
   print_hdr_eth(new_packet);
   print_hdr_ip(new_packet + sizeof(sr_ethernet_hdr_t));
   print_hdr_icmp(new_packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
-  printf("############################################\n");
+  printf("------------------------------------------\n");
 
   /* Send IP packet */
   send_ip_packet(sr, new_packet, new_len, interface, new_ip_header->ip_dst);
